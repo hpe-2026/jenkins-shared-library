@@ -42,14 +42,9 @@
  * ─────────────────────────────────────────────────────────────────────────────
  *  USAGE
  * ─────────────────────────────────────────────────────────────────────────────
- *  // From merchPipeline.groovy — inside container('devops'), inside dir(svcPath)
- *  def result = runTests(svcName)
- *  if (!result.skipped) {
- *      junit(allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml')
- *  }
- *
- *  // Force a specific command (bypass auto-detection):
- *  runTests(svcName, testCommand: 'npx vitest run --reporter=junit')
+ *  Call runTests(svcName) to run tests for a service.
+ *  It returns a Map with a 'skipped' boolean.
+ *  You can force a command by passing 'testCommand'.
  */
 
 // ── Entry point ──────────────────────────────────────────────────────────────
