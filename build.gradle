@@ -1,0 +1,82 @@
+// build.gradle — JenkinsPipelineUnit test runner for jenkins-shared-library
+//
+// Run tests locally:
+//   ./gradlew test
+//
+// Run with verbose output:
+//   ./gradlew test --info
+//
+// Run a specific test:
+//   ./gradlew test --tests "com.nitte.merch.TagUtilsTest"
+
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+group   = 'com.nitte.merch'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.jenkins-ci.org/releases/' }
+}
+
+// JenkinsPipelineUnit version — check https://github.com/jenkinsci/JenkinsPipelineUnit
+def pipelineUnitVersion = '1.22'
+
+dependencies {
+    // Groovy runtime
+    implementation 'org.codehaus.groovy:groovy-all:3.0.22'
+
+    // JenkinsPipelineUnit — mocks Jenkins DSL for unit testing
+    testImplementation "com.lesfurets:jenkins-pipeline-unit:${pipelineUnitVersion}"
+
+    // Test framework
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
+    testRuntimeOnly    'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+
+    // Assertions
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['vars', 'src']
+        }
+        resources {
+            srcDirs = ['resources']
+        }
+    }
+    test {
+        groovy {
+            srcDirs = ['test']
+        }
+        resources {
+            srcDirs = ['test/resources']
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+        showStandardStreams = false
+    }
+
+    // Set the scriptRoots that JenkinsPipelineUnit uses to find vars/ and src/
+    systemProperty 'TEST_SCRIPT_ROOTS', 'vars,src'
+
+    reports {
+        junitXml.required = true
+        html.required     = true
+    }
+}
+
+// Ensure Groovy compiles with compatible options
+compileGroovy.groovyOptions.configurationScript = file('gradle/groovyCompilerConfig.groovy') as File

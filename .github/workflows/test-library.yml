@@ -1,0 +1,112 @@
+name: Test Jenkins Shared Library
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks:   write   # allows publishing test results
+
+jobs:
+  test:
+    name: JenkinsPipelineUnit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Gradle wrapper (if not present)
+        run: |
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version 8.6
+          fi
+          chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon --info
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: build/test-results/**/*.xml
+          comment_mode: off
+
+      - name: Upload HTML test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test/
+          retention-days: 30
+
+  # Static analysis / linting for Groovy
+  static-analysis:
+    name: Groovy Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install CodeNarc (Groovy linter)
+        run: |
+          wget -q https://github.com/CodeNarc/CodeNarc/releases/download/v3.3.0/CodeNarc-3.3.0.jar \
+            -O /tmp/CodeNarc.jar
+          wget -q https://repo1.maven.org/maven2/org/slf4j/slf4j-simple/2.0.9/slf4j-simple-2.0.9.jar \
+            -O /tmp/slf4j-simple.jar
+          wget -q https://repo1.maven.org/maven2/org/slf4j/slf4j-api/2.0.9/slf4j-api-2.0.9.jar \
+            -O /tmp/slf4j-api.jar
+
+      - name: Run CodeNarc on vars/
+        run: |
+          java -classpath "/tmp/CodeNarc.jar:/tmp/slf4j-simple.jar:/tmp/slf4j-api.jar" \
+            org.codenarc.CodeNarc \
+            -basedir=vars \
+            -includes="**/*.groovy" \
+            -report=text:stdout \
+            || true   # non-zero exit = warnings, not failure for now
+
+      - name: Validate YAML pod template
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('resources/pod-templates/build-pod.yaml'))"
+          echo "YAML validation passed"
+
+  # Verify the Groovy classes compile cleanly
+  compile-check:
+    name: Compile Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Compile
+        run: |
+          if [ ! -f gradlew ]; then gradle wrapper --gradle-version 8.6; fi
+          chmod +x gradlew
+          ./gradlew compileGroovy --no-daemon
