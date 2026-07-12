@@ -45,7 +45,7 @@
  *  // From merchPipeline.groovy — inside container('devops'), inside dir(svcPath)
  *  def result = runTests(svcName)
  *  if (!result.skipped) {
- *      junit allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml'
+ *      junit(allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml')
  *  }
  *
  *  // Force a specific command (bypass auto-detection):
