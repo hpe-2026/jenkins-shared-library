@@ -600,7 +600,13 @@ Approve to deploy to PRODUCTION?""",
                 // Collect JUnit results even on failure
                 junit(allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml')
                 // Clean workspace to free agent disk space, ignore failure
-                cleanWs(deleteDirs: true, disableDeferredWipeout: true, failOnError: false)
+                script {
+                    try {
+                        cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+                    } catch (Exception e) {
+                        echo "Workspace cleanup failed: ${e.message}"
+                    }
+                }
             }
         }
 
