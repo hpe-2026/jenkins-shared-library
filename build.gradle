@@ -52,7 +52,7 @@ sourceSets {
     }
     test {
         groovy {
-            srcDirs = ['test']
+            srcDirs = ['test', 'test/vars', 'test/src']
         }
         resources {
             srcDirs = ['test/resources']
