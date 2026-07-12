@@ -83,43 +83,57 @@ def call(Map config) {
             
             // ==================== STAGE 3: INSTALL ====================
             stage('Install Dependencies') {
-                when { expression { env.SERVICES_TO_BUILD } }
+                when { expression { return servicesToBuild?.size() > 0 } }
                 steps {
                     script {
                         servicesToBuild.each { svcName ->
                             dir(config.services[svcName]) {
                                 container('devops') {
-                                    sh '''
+                                    sh """
                                         if [ -f package.json ]; then
+                                            echo "==> [${svcName}] Installing Node.js deps..."
                                             npm ci --legacy-peer-deps
                                         elif [ -f requirements.txt ]; then
-                                            python3 -m venv .venv
-                                            . .venv/bin/activate
-                                            pip install -r requirements.txt
+                                            echo "==> [${svcName}] Installing Python deps..."
+                                            # Install python3/pip if missing (node:20-alpine base)
+                                            if ! command -v python3 >/dev/null 2>&1; then
+                                                apk add --no-cache python3 py3-pip
+                                            fi
+                                            pip3 install --break-system-packages -r requirements.txt
+                                        else
+                                            echo "==> [${svcName}] No package.json or requirements.txt found, skipping."
                                         fi
-                                    '''
+                                    """
                                 }
                             }
                         }
                     }
                 }
             }
+
             
             // ==================== STAGE 4: LINT ====================
             stage('Lint & Type Check') {
-                when { expression { env.SERVICES_TO_BUILD } }
+                when { expression { return servicesToBuild?.size() > 0 } }
                 steps {
                     script {
                         servicesToBuild.each { svcName ->
                             dir(config.services[svcName]) {
                                 container('devops') {
-                                    sh 'npm run lint --if-present || true'
+                                    sh """
+                                        if [ -f package.json ]; then
+                                            npm run lint --if-present || true
+                                        else
+                                            echo "==> [${svcName}] No package.json, skipping lint."
+                                        fi
+                                    """
                                 }
                             }
                         }
                     }
                 }
             }
+
             
             // ==================== STAGE 5: TEST ====================
             stage('Unit Tests') {

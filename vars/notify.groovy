@@ -1,45 +1,49 @@
 #!/usr/bin/env groovy
 
 /**
- * Notification helper for slack and console
+ * Notification helper — console output only.
+ * Slack plugin is not installed; slackSend calls are removed.
+ * To re-enable Slack later, install the "Slack Notification" plugin
+ * and uncomment the slackSend block below.
  */
+
 def success(Map params) {
     def message = """
-    ✅ **Deployment Successful**
-    
-    📦 **Services**: ${params.services.join(', ')}
-    🏷️ **Version**: ${params.version}
-    🌍 **Environment**: ${params.environment}
-    🔗 **Build**: ${env.BUILD_URL}
-    """
-    
-    sendNotification(message, 'good')
+╔══════════════════════════════════════╗
+║   ✅  DEPLOYMENT SUCCESSFUL          ║
+╠══════════════════════════════════════╣
+║  Services  : ${(params.services ?: []).join(', ')}
+║  Version   : ${params.version ?: 'N/A'}
+║  Env       : ${params.environment ?: 'N/A'}
+║  Build URL : ${env.BUILD_URL ?: 'N/A'}
+╚══════════════════════════════════════╝"""
+    echo message
+    _sendEmail('SUCCESS', message, params)
 }
 
 def failure(Map params) {
     def message = """
-    ❌ **Deployment Failed**
-    
-    📦 **Services**: ${params.services?.join(', ') ?: 'Unknown'}
-    🏷️ **Version**: ${params.version}
-    🔗 **Build**: ${params.buildUrl ?: env.BUILD_URL}
-    """
-    
-    sendNotification(message, 'danger')
+╔══════════════════════════════════════╗
+║   ❌  DEPLOYMENT FAILED              ║
+╠══════════════════════════════════════╣
+║  Services  : ${(params.services ?: []).join(', ')}
+║  Version   : ${params.version ?: 'N/A'}
+║  Build URL : ${params.buildUrl ?: env.BUILD_URL ?: 'N/A'}
+╚══════════════════════════════════════╝"""
+    echo message
+    _sendEmail('FAILURE', message, params)
 }
 
-def sendNotification(String message, String color) {
-    // Slack notification (if configured)
+// ── private helper ────────────────────────────────────────────────────────────
+def _sendEmail(String status, String body, Map params) {
+    // Email notification (requires the Mailer plugin — fails silently if absent)
     try {
-        slackSend(
-            channel: '#deployments',
-            color: color,
-            message: message
+        mail(
+            to:      'devops@nitte.edu',
+            subject: "[Jenkins] ${status} — ${params.version ?: 'unknown'} (${params.environment ?: 'N/A'})",
+            body:    body
         )
-    } catch (e) {
-        echo "Slack not configured: ${e.message}"
+    } catch (err) {
+        echo "Email notification skipped: ${err.message}"
     }
-    
-    // Console output always works
-    echo message
 }
