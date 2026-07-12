@@ -242,14 +242,20 @@ def call(Map config) {
                                 container('devops') {
                                     dir(config.services[svcName]) {
 
-                                        // Lint
-                                        sh(label: "[${svcName}] lint", script: """
-                                            if [ -f package.json ]; then
-                                                npm run lint --if-present 2>&1 || true
-                                            elif command -v flake8 >/dev/null 2>&1; then
-                                                flake8 . --max-line-length=120 || true
-                                            fi
-                                        """)
+                                         // Lint
+                                         sh(label: "[${svcName}] lint", script: """
+                                             if [ -f package.json ]; then
+                                                 if [ -f eslint.config.js ] || [ -f eslint.config.mjs ] || [ -f .eslintrc ] || [ -f .eslintrc.js ] || [ -f .eslintrc.json ] || [ -f .eslintrc.yaml ] || [ -f .eslintrc.yml ]; then
+                                                     npm run lint --if-present 2>&1 || true
+                                                 else
+                                                     echo "Skipping lint for ${svcName}. Reason: No ESLint configuration found."
+                                                 fi
+                                             elif command -v flake8 >/dev/null 2>&1; then
+                                                 flake8 . --max-line-length=120 || true
+                                             else
+                                                 echo "Skipping lint for ${svcName}. Reason: No linter configuration found."
+                                             fi
+                                         """)
 
                                         // Unit tests
                                         runTests(svcName)
@@ -279,8 +285,7 @@ def call(Map config) {
                 }
                 post {
                     always {
-                        junit allowEmptyResults: true,
-                              testResults: '**/junit.xml,**/test-results.xml'
+                        junit(allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml')
                     }
                 }
             }
@@ -593,10 +598,9 @@ Approve to deploy to PRODUCTION?""",
             }
             always {
                 // Collect JUnit results even on failure
-                junit allowEmptyResults: true,
-                      testResults: '**/junit.xml,**/test-results.xml'
-                // Clean workspace to free agent disk space
-                cleanWs(deleteDirs: true, disableDeferredWipeout: true)
+                junit(allowEmptyResults: true, testResults: '**/junit.xml,**/test-results.xml')
+                // Clean workspace to free agent disk space, ignore failure
+                cleanWs(deleteDirs: true, disableDeferredWipeout: true, failOnError: false)
             }
         }
 

@@ -94,8 +94,8 @@ class JenkinsPipelineTests extends BasePipelineTest {
         }
 
         @Test
-        void 'notify does not fail when email and slack are not configured'() {
-            // mail() is mocked to succeed; slackSend not registered — should be caught
+        void 'notify does not fail when email is not configured'() {
+            // mail() is mocked to succeed
             def script = loadScript('notify.groovy')
             assertThatCode {
                 script.success(services: ['frontend'])
