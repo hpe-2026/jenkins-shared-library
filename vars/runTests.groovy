@@ -536,7 +536,7 @@ private boolean _hasOrphanedTestFiles(String svcName) {
 /** Read and parse package.json as a Map. Returns null if parse fails. */
 private Map _readPackageJson(String svcName) {
     try {
-        return readJSON file: 'package.json'
+        return readJSON(file: 'package.json')
     } catch (e) {
         error _fmt(svcName, "Failed to parse package.json: ${e.message}\nFix: ensure package.json is valid JSON.")
     }
