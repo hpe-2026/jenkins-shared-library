@@ -18,7 +18,7 @@ spec:
     - name: build-cache
       mountPath: /home/jenkins/.npm
   - name: kaniko
-    image: 192.168.56.10:30082/kaniko-project/executor:debug
+    image: 192.168.56.10:30083/kaniko-project/executor:debug
     command: ["sleep", "99d"]
     tty: true
     workingDir: /home/jenkins/agent
@@ -26,7 +26,7 @@ spec:
     - name: nexus-docker-config
       mountPath: /kaniko/.docker
   - name: security
-    image: 192.168.56.10:30082/aquasec/trivy:latest
+    image: 192.168.56.10:30083/aquasec/trivy:latest
     command: ["sleep", "99d"]
     tty: true
     workingDir: /home/jenkins/agent
